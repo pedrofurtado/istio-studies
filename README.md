@@ -2,6 +2,12 @@
 
 Istio service mesh studies. Just for fun.
 
+Topics:
+
+- Sticky sessions with consistent hash
+- Canary deploys (% percentage between versions of systems)
+- Circuit breaker
+
 ```bash
 # Enter root folder of repo (commands must be run in root folder)
 cd istio-studies/
@@ -52,5 +58,5 @@ kubectl exec "$(kubectl get pods -l app=fortio -o 'jsonpath={.items[0].metadata.
 kubectl delete all --all
 kubectl delete "$(kubectl api-resources --namespaced=true --verbs=delete -o name | tr "\n" "," | sed -e 's/,$//')" --all
 kubectl delete all --all --all-namespaces
-kind delete cluster
+k3d cluster delete --all
 ```
