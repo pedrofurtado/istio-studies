@@ -13,10 +13,28 @@ spec:
     - name: vA
       labels:
         version: vA
+      # Specific trafficPolicy - Enable if want this config for this specific subset
+      # More options in: https://istio.io/latest/docs/reference/config/networking/destination-rule/#LoadBalancerSettings-SimpleLB
+      trafficPolicy:
+        loadBalancer:
+          simple: ROUND_ROBIN
     - name: vB
       labels:
         version: vB
-  trafficPolicy: ~
+      # Specific trafficPolicy - Enable if want this config for this specific subset
+      # More options in: https://istio.io/latest/docs/reference/config/networking/destination-rule/#LoadBalancerSettings-SimpleLB
+      trafficPolicy:
+        loadBalancer:
+          simple: ROUND_ROBIN
+
+  # Global trafficPolicy - No config
+  # trafficPolicy: ~
+
+  # Global trafficPolicy - Enable if want this config for all subsets
+  # More options in: https://istio.io/latest/docs/reference/config/networking/destination-rule/#LoadBalancerSettings-SimpleLB
+  # trafficPolicy:
+  #   loadBalancer:
+  #     simple: ROUND_ROBIN
 
 ---
 kind: VirtualService
@@ -32,11 +50,11 @@ spec:
         - destination:
             host: nginx-service.default.svc.cluster.local
             subset: vA
-          weight: 30
+          weight: 75
         - destination:
             host: nginx-service.default.svc.cluster.local
             subset: vB
-          weight: 70
+          weight: 25
   hosts:
     - nginx-service.default.svc.cluster.local
   gateways: ~
