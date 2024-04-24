@@ -33,6 +33,7 @@ spec:
         sidecar.istio.io/inject: "true"
       labels:
         app: nginx
+        version: version-A
     spec:
       containers:
       - name: nginx
@@ -64,6 +65,7 @@ spec:
         sidecar.istio.io/inject: "true"
       labels:
         app: nginx
+        version: version-B
     spec:
       containers:
       - name: nginx
@@ -82,7 +84,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: nginx-ab-service
+  name: nginx-service
 spec:
   type: LoadBalancer
   selector:
