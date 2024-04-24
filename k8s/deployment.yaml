@@ -2,25 +2,56 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: nginx-configmap-index-html-version-b
-data:
-  index.html: |
-    Nginx version B
-
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
   name: nginx-configmap-index-html-version-a
 data:
   index.html: |
     Nginx version A
 
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-configmap-index-html-version-b
+data:
+  index.html: |
+    Nginx version B
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nginx
+  name: nginx-a
+  labels:
+    app: nginx
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "true"
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:mainline
+        ports:
+        - containerPort: 80
+        volumeMounts:
+          - name: nginx-index-html-file
+            mountPath: /usr/share/nginx/html/
+      volumes:
+      - name: nginx-index-html-file
+        configMap:
+          name: nginx-configmap-index-html-version-a
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-b
   labels:
     app: nginx
 spec:
@@ -51,10 +82,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: nginx-service
+  name: nginx-ab-service
 spec:
+  type: LoadBalancer
   selector:
     app: nginx
   ports:
-  - port: 80
+  - port: 8001
     targetPort: 80
+    nodePort: 30001

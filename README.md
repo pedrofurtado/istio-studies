@@ -3,6 +3,9 @@
 Istio service mesh studies. Just for fun.
 
 ```bash
+# Enter root folder of repo (commands must be run in root folder)
+cd istio-studies/
+
 # Create k8s cluster
 kind create cluster
 kubectl cluster-info --context kind-kind
@@ -31,7 +34,7 @@ istioctl dashboard kiali --address 0.0.0.0 --port 3012 --browser=false
 # Deploy app + Access the app at http://localhost:3010
 kubectl apply -f k8s/
 watch kubectl get pods
-kubectl port-forward svc/nginx-service 3010:80 --address='0.0.0.0'
+while true; do curl http://$(kubectl get nodes -o json | jq -r '.items[].status.addresses[] | select(.type=="InternalIP") | .address'):30001; sleep 0.5; done
 
 # Delete the k8s cluster
 kubectl delete all --all
