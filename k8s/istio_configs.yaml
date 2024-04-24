@@ -1,0 +1,42 @@
+---
+kind: DestinationRule
+apiVersion: networking.istio.io/v1beta1
+metadata:
+  namespace: default
+  name: nginx-service
+  labels:
+    kiali_wizard: traffic_shifting
+  annotations: ~
+spec:
+  host: nginx-service.default.svc.cluster.local
+  subsets:
+    - name: vA
+      labels:
+        version: vA
+    - name: vB
+      labels:
+        version: vB
+  trafficPolicy: ~
+
+---
+kind: VirtualService
+apiVersion: networking.istio.io/v1beta1
+metadata:
+  namespace: default
+  name: nginx-service
+  labels:
+    kiali_wizard: traffic_shifting
+spec:
+  http:
+    - route:
+        - destination:
+            host: nginx-service.default.svc.cluster.local
+            subset: vA
+          weight: 30
+        - destination:
+            host: nginx-service.default.svc.cluster.local
+            subset: vB
+          weight: 70
+  hosts:
+    - nginx-service.default.svc.cluster.local
+  gateways: ~

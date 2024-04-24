@@ -1,0 +1,17 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-configmap-index-html-version-a
+data:
+  index.html: |
+    Nginx version A
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-configmap-index-html-version-b
+data:
+  index.html: |
+    Nginx version B
