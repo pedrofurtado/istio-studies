@@ -1,7 +1,28 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-configmap-index-html-version-b
+data:
+  index.html: |
+    Nginx version B
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-configmap-index-html-version-a
+data:
+  index.html: |
+    Nginx version A
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nginx
+  labels:
+    app: nginx
 spec:
   selector:
     matchLabels:
@@ -18,3 +39,22 @@ spec:
         image: nginx:mainline
         ports:
         - containerPort: 80
+        volumeMounts:
+          - name: nginx-index-html-file
+            mountPath: /usr/share/nginx/html/
+      volumes:
+      - name: nginx-index-html-file
+        configMap:
+          name: nginx-configmap-index-html-version-b
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+spec:
+  selector:
+    app: nginx
+  ports:
+  - port: 80
+    targetPort: 80

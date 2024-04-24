@@ -28,7 +28,9 @@ watch kubectl get pods -n istio-system
 # Access Kiali dashboard at http://localhost:3012
 istioctl dashboard kiali --address 0.0.0.0 --port 3012 --browser=false
 
-# Access the app at http://localhost:3010
+# Deploy app + Access the app at http://localhost:3010
+kubectl apply -f k8s/
+watch kubectl get pods
 kubectl port-forward svc/nginx-service 3010:80 --address='0.0.0.0'
 
 # Delete the k8s cluster
