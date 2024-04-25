@@ -1,0 +1,167 @@
+## CONFIG MAPS
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-configmap-index-html-version-a
+data:
+  index.html: |
+    Nginx version A
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-configmap-index-html-version-b
+data:
+  index.html: |
+    Nginx version B
+
+
+## DEPLOYMENTS
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-a
+  labels:
+    app: nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+      version: vA
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "true"
+      labels:
+        app: nginx
+        version: vA
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:mainline
+        ports:
+        - containerPort: 80
+        volumeMounts:
+          - name: nginx-index-html-file
+            mountPath: /usr/share/nginx/html/
+      volumes:
+      - name: nginx-index-html-file
+        configMap:
+          name: nginx-configmap-index-html-version-a
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-b
+  labels:
+    app: nginx
+    version: vB
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+      version: vB
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "true"
+      labels:
+        app: nginx
+        version: vB
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:mainline
+        ports:
+        - containerPort: 80
+        volumeMounts:
+          - name: nginx-index-html-file
+            mountPath: /usr/share/nginx/html/
+      volumes:
+      - name: nginx-index-html-file
+        configMap:
+          name: nginx-configmap-index-html-version-b
+
+
+## SERVICES
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: nginx
+  ports:
+  - port: 8085
+    targetPort: 80
+    nodePort: 30000
+
+## ISTIO CONFIGS
+---
+kind: DestinationRule
+apiVersion: networking.istio.io/v1beta1
+metadata:
+  namespace: default
+  name: nginx-service
+  labels:
+    kiali_wizard: traffic_shifting
+  annotations: ~
+spec:
+  host: nginx-service.default.svc.cluster.local
+  subsets:
+    - name: vA
+      labels:
+        version: vA
+      # Specific trafficPolicy - Enable if want this config for this specific subset
+      # More options in: https://istio.io/latest/docs/reference/config/networking/destination-rule/#LoadBalancerSettings-SimpleLB
+      trafficPolicy:
+        loadBalancer:
+          simple: ROUND_ROBIN
+    - name: vB
+      labels:
+        version: vB
+      # Specific trafficPolicy - Enable if want this config for this specific subset
+      # More options in: https://istio.io/latest/docs/reference/config/networking/destination-rule/#LoadBalancerSettings-SimpleLB
+      trafficPolicy:
+        loadBalancer:
+          simple: ROUND_ROBIN
+
+  # Global trafficPolicy - No config
+  # trafficPolicy: ~
+
+  # Global trafficPolicy - Enable if want this config for all subsets
+  # More options in: https://istio.io/latest/docs/reference/config/networking/destination-rule/#LoadBalancerSettings-SimpleLB
+  # trafficPolicy:
+  #   loadBalancer:
+  #     simple: ROUND_ROBIN
+
+---
+kind: VirtualService
+apiVersion: networking.istio.io/v1beta1
+metadata:
+  namespace: default
+  name: nginx-service
+  labels:
+    kiali_wizard: traffic_shifting
+spec:
+  http:
+    - route:
+        - destination:
+            host: nginx-service.default.svc.cluster.local
+            subset: vA
+          weight: 20
+        - destination:
+            host: nginx-service.default.svc.cluster.local
+            subset: vB
+          weight: 80
+  hosts:
+    - nginx-service.default.svc.cluster.local
+  gateways: ~

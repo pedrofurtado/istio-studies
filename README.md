@@ -46,7 +46,7 @@ istioctl dashboard kiali --address 0.0.0.0 --port 3012 --browser=false
 kubectl apply -f https://raw.githubusercontent.com/istio/istio/1.21.2/samples/httpbin/sample-client/fortio-deploy.yaml
 
 # Deploy app + Access the app at http://localhost:8000
-kubectl apply -f k8s/
+kubectl apply -f k8s/canary_deploy.yaml
 watch kubectl get pods
 
 # Simulate heavy loads
