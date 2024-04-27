@@ -6,7 +6,7 @@ metadata:
   name: nginx-configmap-index-html-version-a
 data:
   index.html: |
-    Nginx A
+    Nginx sticky sessions A
 
 ---
 apiVersion: v1
@@ -15,7 +15,7 @@ metadata:
   name: nginx-configmap-index-html-version-b
 data:
   index.html: |
-    Nginx B
+    Nginx sticky sessions B
 
 ## DEPLOYMENTS
 ---
@@ -114,32 +114,14 @@ metadata:
   annotations: ~
 spec:
   host: nginx-service.default.svc.cluster.local
+  trafficPolicy:
+    loadBalancer:
+      consistentHash: # Possible values: https://istio.io/latest/docs/reference/config/networking/destination-rule/#LoadBalancerSettings-ConsistentHashLB
+        httpHeaderName: "x-my-header"
   subsets:
-    - name: versionA
+    - name: versionAll
       labels:
-        version: versionA
-      # Specific trafficPolicy - Enable if want this config for this specific subset
-      # More options in: https://istio.io/latest/docs/reference/config/networking/destination-rule/#LoadBalancerSettings-SimpleLB
-      trafficPolicy:
-        loadBalancer:
-          simple: ROUND_ROBIN
-    - name: versionB
-      labels:
-        version: versionB
-      # Specific trafficPolicy - Enable if want this config for this specific subset
-      # More options in: https://istio.io/latest/docs/reference/config/networking/destination-rule/#LoadBalancerSettings-SimpleLB
-      trafficPolicy:
-        loadBalancer:
-          simple: ROUND_ROBIN
-
-  # Global trafficPolicy - No config
-  # trafficPolicy: ~
-
-  # Global trafficPolicy - Enable if want this config for all subsets
-  # More options in: https://istio.io/latest/docs/reference/config/networking/destination-rule/#LoadBalancerSettings-SimpleLB
-  # trafficPolicy:
-  #   loadBalancer:
-  #     simple: ROUND_ROBIN
+        app: nginx # this got both versionA and versionB pods
 
 ---
 kind: VirtualService
@@ -154,12 +136,7 @@ spec:
     - route:
         - destination:
             host: nginx-service.default.svc.cluster.local
-            subset: versionA
-          weight: 15
-        - destination:
-            host: nginx-service.default.svc.cluster.local
-            subset: versionB
-          weight: 85
+            subset: versionAll
   hosts:
     - nginx-service.default.svc.cluster.local
   gateways: ~

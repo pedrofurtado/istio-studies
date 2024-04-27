@@ -17,7 +17,7 @@ curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | TAG=v5.6.
 k3d --version
 
 # Create k8s cluster
-# Obs: The external port 8000 binds to node port 30000, that binds to the service port
+# Obs: The external port 8000 binds to node port 30000, that binds to the service port 8085
 k3d cluster create -p "8000:30000@loadbalancer" --agents 1
 kubectl cluster-info
 
@@ -45,14 +45,25 @@ istioctl dashboard kiali --address 0.0.0.0 --port 3012 --browser=false
 # Install fortio to simulate heavy loads
 kubectl apply -f https://raw.githubusercontent.com/istio/istio/1.21.2/samples/httpbin/sample-client/fortio-deploy.yaml
 
-# Deploy app + Access the app at http://localhost:8000
+# OPTION 01 (Canary deploy) - Deploy app + Access the app at http://localhost:8000
 kubectl apply -f k8s/canary_deploy.yaml
 watch kubectl get pods
 
-# Simulate heavy loads
+# OPTION 01 (Canary deploy) - Simulate heavy loads
 while true; do curl http://localhost:8000; sleep 0.5; done
 or
 kubectl exec "$(kubectl get pods -l app=fortio -o 'jsonpath={.items[0].metadata.name}')" -c fortio -- /usr/bin/fortio load -c 2 -qps 0 -t 200s -loglevel Warning http://nginx-service:8085
+
+# OPTION 02 (Sticky sessions with consistent hash) - Deploy app + Access the app at http://localhost:8000
+kubectl apply -f k8s/sticky_sessions_with_consistent_hash.yaml
+watch kubectl get pods
+
+# OPTION 02 (Sticky sessions with consistent hash) - Simulate session without consistent hash calculation (the load balancing between versions keep working)
+kubectl exec -it "$(kubectl get pods -l app=nginx -o 'jsonpath={.items[0].metadata.name}')" -- bash -c 'while true; do curl http://nginx-service:8085; sleep 0.5; done'
+
+# OPTION 02 (Sticky sessions with consistent hash) - Simulate session with consistent hash calculation (the load balancing between versions stops)
+kubectl exec -it "$(kubectl get pods -l app=nginx -o 'jsonpath={.items[0].metadata.name}')" -- bash -c 'while true; do curl --header "x-my-header:abc" http://nginx-service:8085; sleep 0.5; done'
+kubectl exec -it "$(kubectl get pods -l app=nginx -o 'jsonpath={.items[0].metadata.name}')" -- bash -c 'while true; do curl --header "x-my-header:abcde" http://nginx-service:8085; sleep 0.5; done'
 
 # Delete the k8s cluster
 kubectl delete all --all
