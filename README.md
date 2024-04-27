@@ -76,6 +76,16 @@ kubectl apply -f https://raw.githubusercontent.com/istio/istio/1.21.2/samples/ht
   # OPTION 03 (Fault injections - delay and aborts) - Simulate
   kubectl exec -it "$(kubectl get pods -l app=nginx -o 'jsonpath={.items[0].metadata.name}')" -- bash -c 'while true; do curl http://nginx-service:8085; echo ""; sleep 0.2; done'
 
+## OPTION 04 (Circuit breaker)
+  # OPTION 04 (Circuit breaker) - Deploy app + Access the app at http://localhost:8000
+  kubectl apply -f k8s/circuit_breaker.yaml
+  watch kubectl get pods
+
+  # OPTION 04 (Circuit breaker) - Simulate
+  while true; do curl http://localhost:8000; echo ""; sleep 0.2; done
+  kubectl exec -it "$(kubectl get pods -l app=istio-studies-app-for-circuit-breaker -o 'jsonpath={.items[0].metadata.name}')" -- sh -c 'while true; do wget -qO- http://istio-studies-app-for-circuit-breaker-service:8085; echo ""; sleep 0.2; done'
+  kubectl exec "$(kubectl get pods -l app=fortio -o 'jsonpath={.items[0].metadata.name}')" -c fortio -- /usr/bin/fortio load -c 2 -qps 0 -n 50 -loglevel Warning http://istio-studies-app-for-circuit-breaker-service:8085
+
 # Delete the k8s cluster
 kubectl delete all --all
 kubectl delete "$(kubectl api-resources --namespaced=true --verbs=delete -o name | tr "\n" "," | sed -e 's/,$//')" --all

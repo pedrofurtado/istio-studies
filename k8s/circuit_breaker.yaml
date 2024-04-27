@@ -1,0 +1,88 @@
+## DEPLOYMENTS
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: istio-studies-app-for-circuit-breaker-success
+  labels:
+    app: istio-studies-app-for-circuit-breaker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: istio-studies-app-for-circuit-breaker
+      version: success
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "true"
+      labels:
+        app: istio-studies-app-for-circuit-breaker
+        version: success
+    spec:
+      containers:
+      - name: istio-studies-app-for-circuit-breaker
+        image: pedrofurtado/istio-studies-app-for-circuit-breaker:latest
+        ports:
+        - containerPort: 8080
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: istio-studies-app-for-circuit-breaker-failure
+  labels:
+    app: istio-studies-app-for-circuit-breaker
+    version: failure
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: istio-studies-app-for-circuit-breaker
+      version: failure
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "true"
+      labels:
+        app: istio-studies-app-for-circuit-breaker
+        version: failure
+    spec:
+      containers:
+      - name: istio-studies-app-for-circuit-breaker
+        image: pedrofurtado/istio-studies-app-for-circuit-breaker:latest
+        ports:
+        - containerPort: 8080
+        env:
+          - name: FORCE_ERROR
+            value: "yes"
+
+## SERVICES
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: istio-studies-app-for-circuit-breaker-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: istio-studies-app-for-circuit-breaker
+  ports:
+  - port: 8085
+    targetPort: 8080
+    nodePort: 30000
+
+# ISTIO CONFIGS
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: istio-studies-app-for-circuit-breaker-service-destination-rule
+spec:
+  host: istio-studies-app-for-circuit-breaker-service.default.svc.cluster.local
+  trafficPolicy:
+    outlierDetection:
+      consecutive5xxErrors: 10
+      interval: 20s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 100
