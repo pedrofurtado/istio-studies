@@ -8,6 +8,7 @@ Topics:
 - Sticky sessions with consistent hash
 - Fault injections (delays and aborts)
 - Circuit breaker
+- Ingress Gateway
 
 ```bash
 # Enter root folder of repo (commands must be run in root folder)
