@@ -86,6 +86,26 @@ kubectl apply -f https://raw.githubusercontent.com/istio/istio/1.21.2/samples/ht
   kubectl exec -it "$(kubectl get pods -l app=istio-studies-app-for-circuit-breaker -o 'jsonpath={.items[0].metadata.name}')" -- sh -c 'while true; do wget -qO- http://istio-studies-app-for-circuit-breaker-service:8085; echo ""; sleep 0.2; done'
   kubectl exec "$(kubectl get pods -l app=fortio -o 'jsonpath={.items[0].metadata.name}')" -c fortio -- /usr/bin/fortio load -c 2 -qps 0 -n 50 -loglevel Warning http://istio-studies-app-for-circuit-breaker-service:8085
 
+## OPTION 05 (Istio Ingress Gateway)
+# OPTION 05 (Istio Ingress Gateway) - Patch the Istio ingress Gateway to bind "8000:30000", to allow invoke it from http://localhost:8000 in browser (for example).
+kubectl edit svc istio-ingressgateway -n istio-system
+
+spec:
+  ports:
+    - name: http2
+      nodePort: xxx #<--- CHANGE THIS TO 30000
+      port: 80
+      protocol: TCP
+      targetPort: xxx #<--- CHANGE THIS TO 8000
+
+# OPTION 05 (Istio Ingress Gateway) - Deploy app + Access the app at http://localhost:8000
+kubectl apply -f k8s/ingress_gateway.yaml
+watch kubectl get pods
+while true; do curl http://localhost:8000/half-a-half-b/; done
+while true; do curl http://localhost:8000/only-b/; done
+while true; do curl http://localhost:8000/only-a/; done
+while true; do curl http://localhost:8000/; done
+
 # Delete the k8s cluster
 kubectl delete all --all
 kubectl delete "$(kubectl api-resources --namespaced=true --verbs=delete -o name | tr "\n" "," | sed -e 's/,$//')" --all
